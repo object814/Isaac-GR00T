@@ -50,8 +50,11 @@ RUN pip install \
     openai \
     albumentations==1.4.18 \
     decord==0.6.0 \
-    torchcodec==0.4.0
-
+    torchcodec==0.4.0 \
+    termcolor \
+    av \
+    omegaconf
+    
 # ---------------------------------------------------------
 # Install PyTorch3D (from GR00T Dockerfile)
 # ---------------------------------------------------------
@@ -113,6 +116,29 @@ ENV HYDRA_FULL_ERROR=1
 ENV TORCH_LOGS="-all"
 ENV TORCHDYNAMO_VERBOSE=1
 ENV WANDB_API_KEY=${WANDB_API_KEY}
+
+# ---------------------------------------------------------
+# Environment variables
+# ---------------------------------------------------------
+ENV PYTHONPATH="${PYTHONPATH}:/Isaac-GR00T"
+ENV HYDRA_FULL_ERROR=1
+ENV TORCH_LOGS="-all"
+ENV TORCHDYNAMO_VERBOSE=1
+ENV WANDB_API_KEY=${WANDB_API_KEY}
+
+# HuggingFace / Torch cache locations
+ENV HF_HOME=/Isaac-GR00T/.cache/hf
+ENV HUGGINGFACE_HUB_CACHE=/Isaac-GR00T/.cache/hf
+ENV TRANSFORMERS_CACHE=/Isaac-GR00T/.cache/hf
+ENV HF_DATASETS_CACHE=/Isaac-GR00T/.cache/hf
+ENV TORCH_HOME=/Isaac-GR00T/.cache/torch
+ENV TMPDIR=/Isaac-GR00T/.cache/tmp
+
+RUN mkdir -p /Isaac-GR00T/.cache/tmp
+
+RUN mkdir -p /Isaac-GR00T/.cache/hf \
+    /Isaac-GR00T/.cache/torch && \
+    chown -R ${USER_NAME}:${USER_NAME} /Isaac-GR00T/.cache
 
 # Switch to user
 USER ${USER_NAME}
