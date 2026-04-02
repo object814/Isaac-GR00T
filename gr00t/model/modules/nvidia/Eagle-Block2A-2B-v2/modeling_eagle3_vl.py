@@ -150,16 +150,26 @@ class Eagle3_VLForConditionalGeneration(Eagle3_VLPreTrainedModel, GenerationMixi
         self.image_token_index = config.image_token_index
         self.neftune_alpha = None
 
+        config.use_backbone_lora = 32
+        config.use_llm_lora = 16
+
         if config.use_backbone_lora:
+            print(f">>> USING BACKBONE LORA with r={config.use_backbone_lora} and alpha={2 * config.use_backbone_lora}")
+            input(">>> Press Enter to continue...")
             self.wrap_backbone_lora(
                 r=config.use_backbone_lora, lora_alpha=2 * config.use_backbone_lora
             )
 
-        self.use_llm_lora = config.use_llm_lora
+        # self.use_llm_lora = config.use_llm_lora
         if config.use_llm_lora:
+            print(f">>> USING LLM LORA with r={config.use_llm_lora} and alpha={2 * config.use_llm_lora}")
+            input(">>> Press Enter to continue...")
             self.wrap_llm_lora(
                 r=config.use_llm_lora, lora_alpha=2 * config.use_llm_lora
             )
+
+        print(">>> Finished checking LORA setup. Starting training...")
+        input(">>> Press Enter to continue...")
 
         self.check_forward_kwargs()
 
