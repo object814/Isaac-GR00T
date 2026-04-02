@@ -13,3 +13,9 @@
 [submodule "external_dependencies/GR00T-WholeBodyControl"]
     path = external_dependencies/GR00T-WholeBodyControl
     url = https://github.com/NVlabs/GR00T-WholeBodyControl.git
+[submodule "external_dependencies/bimanual_suite"]
+	path = external_dependencies/bimanual_suite
+	url = git@github.com:object814/bimanual_suite.git
+[submodule "external_dependencies/bimanual_imitation"]
+	path = external_dependencies/bimanual_imitation
+	url = git@github.com:object814/bimanual_imitation.git
