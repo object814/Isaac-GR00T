@@ -22,6 +22,8 @@ frank_config = {
             "right_pos_sin",
             "left_gripper",
             "right_gripper",
+            "left_arm",
+            "right_arm",
         ],
     ),
     "action": ModalityConfig(
@@ -29,8 +31,30 @@ frank_config = {
         modality_keys=[
             "left_arm",
             "right_arm",
+            "left_gripper",
+            "right_gripper",
         ],
         action_configs=[
+            # ActionConfig(
+            #     rep=ActionRepresentation.ABSOLUTE,
+            #     type=ActionType.NON_EEF,
+            #     format=ActionFormat.DEFAULT,
+            # ),
+            # ActionConfig(
+            #     rep=ActionRepresentation.ABSOLUTE,
+            #     type=ActionType.NON_EEF,
+            #     format=ActionFormat.DEFAULT,
+            # ),
+            ActionConfig(
+                rep=ActionRepresentation.RELATIVE,
+                type=ActionType.NON_EEF,
+                format=ActionFormat.DEFAULT,
+            ),
+            ActionConfig(
+                rep=ActionRepresentation.RELATIVE,
+                type=ActionType.NON_EEF,
+                format=ActionFormat.DEFAULT,
+            ),
             ActionConfig(
                 rep=ActionRepresentation.ABSOLUTE,
                 type=ActionType.NON_EEF,
