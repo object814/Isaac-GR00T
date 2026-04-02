@@ -5,14 +5,15 @@ ENV NVIDIA_DRIVER_CAPABILITIES=graphics,utility,compute
 # Prevent python bytecode and buffering
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
+ENV PYTHONNOUSERSITE=1
 
-# Arguments passed from docker-compose /.env
+# Arguments
 ARG USER_NAME=developer
 ARG USER_UID=1000
 ARG WANDB_API_KEY=""
 
 # ---------------------------------------------------------
-# System dependencies (from GR00T Dockerfile)
+# System dependencies
 # ---------------------------------------------------------
 RUN apt-get update && apt-get install -y \
     build-essential yasm cmake libtool git pkg-config \
@@ -30,46 +31,34 @@ RUN apt-get update && apt-get install -y \
 RUN pip install --upgrade pip setuptools
 RUN pip install uv
 
-# Fix constraints inside NVIDIA pytorch container
+# Fix constraints inside NVIDIA pytorch container (keep your fixes)
 RUN sed -i s/dill==0.3.9/dill==0.3.8/g /etc/pip/constraint.txt
 RUN sed -i s/scipy==1.15.2/scipy==1.15.3/g /etc/pip/constraint.txt
 
-# Install python dependencies (from GR00T Dockerfile)
+# ---------------------------------------------------------
+# Install ONLY safe lightweight deps (no ML stack)
+# ---------------------------------------------------------
 RUN pip install \
     imageio \
     h5py \
     boto3 \
-    transformers[torch] \
-    deepspeed \
-    timm \
-    peft \
-    diffusers \
-    wandb \
-    tianshou \
-    dm_tree \
-    openai \
-    albumentations==1.4.18 \
-    decord==0.6.0 \
-    torchcodec==0.4.0 \
-    termcolor \
-    av \
-    omegaconf
-    
+    termcolor
+
 # ---------------------------------------------------------
 # Install PyTorch3D (from GR00T Dockerfile)
 # ---------------------------------------------------------
-RUN mkdir -p /opt
-RUN cd /opt && git clone https://github.com/facebookresearch/pytorch3d.git
-RUN cd /opt/pytorch3d && pip install .
+RUN mkdir -p /opt && \
+    cd /opt && git clone https://github.com/facebookresearch/pytorch3d.git && \
+    cd /opt/pytorch3d && pip install .
 
 # ---------------------------------------------------------
-# Workspace setup
+# Workspace
 # ---------------------------------------------------------
 RUN mkdir -p /Isaac-GR00T
 WORKDIR /Isaac-GR00T
 
 # ---------------------------------------------------------
-# NVIDIA EGL / Vulkan configuration (from GR00T Dockerfile)
+# NVIDIA EGL / Vulkan configuration
 # ---------------------------------------------------------
 RUN mkdir -p /usr/share/glvnd/egl_vendor.d && \
     cat >/usr/share/glvnd/egl_vendor.d/10_nvidia.json <<'EOF'
@@ -102,23 +91,11 @@ RUN addgroup --gid ${USER_UID} ${USER_NAME} && \
         ${USER_NAME} && \
     usermod -aG sudo ${USER_NAME}
 
-# Allow passwordless sudo
 RUN echo "${USER_NAME} ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
-
-# Fix permissions for workspace
 RUN chown -R ${USER_NAME}:${USER_NAME} /Isaac-GR00T
 
 # ---------------------------------------------------------
-# Environment variables
-# ---------------------------------------------------------
-ENV PYTHONPATH="${PYTHONPATH}:/Isaac-GR00T"
-ENV HYDRA_FULL_ERROR=1
-ENV TORCH_LOGS="-all"
-ENV TORCHDYNAMO_VERBOSE=1
-ENV WANDB_API_KEY=${WANDB_API_KEY}
-
-# ---------------------------------------------------------
-# Environment variables
+# Environment variables (kept exactly as yours)
 # ---------------------------------------------------------
 ENV PYTHONPATH="${PYTHONPATH}:/Isaac-GR00T"
 ENV HYDRA_FULL_ERROR=1
@@ -133,11 +110,12 @@ ENV TRANSFORMERS_CACHE=/Isaac-GR00T/.cache/hf
 ENV HF_DATASETS_CACHE=/Isaac-GR00T/.cache/hf
 ENV TORCH_HOME=/Isaac-GR00T/.cache/torch
 ENV TMPDIR=/Isaac-GR00T/.cache/tmp
+ENV UV_CACHE_DIR=/Isaac-GR00T/.cache/uv-cache
 
 RUN mkdir -p /Isaac-GR00T/.cache/tmp
-
 RUN mkdir -p /Isaac-GR00T/.cache/hf \
-    /Isaac-GR00T/.cache/torch && \
+    /Isaac-GR00T/.cache/torch \
+    /Isaac-GR00T/.cache/uv-cache && \
     chown -R ${USER_NAME}:${USER_NAME} /Isaac-GR00T/.cache
 
 # Switch to user
