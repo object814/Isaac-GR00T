@@ -169,5 +169,10 @@ offline_open_loop_eval_plots/
 # Generic model/data folders
 /models
 /data
+/data_backup
 
 .env
+*.sif
+*.sif.bk
+
+setup_readme.md
