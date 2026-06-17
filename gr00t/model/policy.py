@@ -14,6 +14,7 @@
 # limitations under the License.
 
 import json
+import copy
 from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import Any, Dict, Optional, Union
@@ -237,7 +238,33 @@ class Gr00tPolicy(BasePolicy):
         return True
 
     def _load_model(self, model_path):
-        model = GR00T_N1_5.from_pretrained(model_path, torch_dtype=COMPUTE_DTYPE)
+        model_path = Path(model_path)
+        adapter_config_path = model_path / "adapter_config.json"
+
+        # Adapter checkpoints only contain LoRA deltas. For inference, load the base model,
+        # attach adapter weights, and merge so downstream code can use a plain GR00T model.
+        if adapter_config_path.exists():
+            try:
+                from peft import PeftConfig, PeftModel
+            except ImportError as exc:
+                raise ImportError(
+                    "Detected a LoRA adapter checkpoint but `peft` is not installed. "
+                    "Install peft to evaluate adapter checkpoints."
+                ) from exc
+
+            peft_config = PeftConfig.from_pretrained(str(model_path))
+            base_model_path = peft_config.base_model_name_or_path
+            print(
+                f"Policy: Detected LoRA adapter checkpoint at {model_path}. "
+                f"Loading base model from {base_model_path}"
+            )
+            model = GR00T_N1_5.from_pretrained(base_model_path, torch_dtype=COMPUTE_DTYPE)
+            model = PeftModel.from_pretrained(model, str(model_path), is_trainable=False)
+            print("Policy: Merging LoRA adapter into base model for inference")
+            model = model.merge_and_unload()
+        else:
+            model = GR00T_N1_5.from_pretrained(str(model_path), torch_dtype=COMPUTE_DTYPE)
+
         model.eval()  # Set model to eval mode
 
         # Update action_horizon to match modality config
@@ -250,7 +277,7 @@ class Gr00tPolicy(BasePolicy):
             )
 
             # Update the action head config
-            new_action_head_config = model.action_head.config
+            new_action_head_config = copy.deepcopy(model.action_head.config)
             new_action_head_config.action_horizon = expected_action_horizon
 
             # Import the FlowmatchingActionHead class

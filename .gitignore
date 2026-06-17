@@ -119,6 +119,18 @@ playground/
 .hydra/
 
 # Data
-demo_data/gr00t-gr1-apple-to-shelf/
+demo_data/
 tmp/
 output/
+
+outputs/
+docker/
+data/
+data_relabeled/
+setup_readme.md
+sweep_run*/
+
+# Frank finetune: local artifacts that must NOT sync to GitHub
+output.txt
+*.sif
+wandb/

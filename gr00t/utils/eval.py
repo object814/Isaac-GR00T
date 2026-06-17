@@ -44,6 +44,8 @@ def calc_mse_for_single_trajectory(
     plot=False,
     plot_state=False,
     save_plot_path=None,
+    use_low_pass_filter: bool = False,
+    low_pass_alpha: float = 0.2,
 ):
     state_joints_across_time = []
     gt_action_across_time = []
@@ -88,6 +90,15 @@ def calc_mse_for_single_trajectory(
     mse = np.mean((gt_action_across_time - pred_action_across_time) ** 2)
     print("Unnormalized Action MSE across single traj:", mse)
 
+    filtered_pred_action_across_time = None
+    filtered_mse = None
+    if use_low_pass_filter:
+        filtered_pred_action_across_time = low_pass_filter_actions(
+            pred_action_across_time, low_pass_alpha
+        )
+        filtered_mse = np.mean((gt_action_across_time - filtered_pred_action_across_time) ** 2)
+        print(f"Low-pass(alpha={low_pass_alpha}) Action MSE across single traj:", filtered_mse)
+
     print("state_joints vs time", state_joints_across_time.shape)
     print("gt_action_joints vs time", gt_action_across_time.shape)
     print("pred_action_joints vs time", pred_action_across_time.shape)
@@ -104,12 +115,16 @@ def calc_mse_for_single_trajectory(
             "state_joints_across_time": state_joints_across_time,
             "gt_action_across_time": gt_action_across_time,
             "pred_action_across_time": pred_action_across_time,
+            "filtered_pred_action_across_time": filtered_pred_action_across_time,
             "modality_keys": modality_keys,
             "traj_id": traj_id,
             "mse": mse,
+            "filtered_mse": filtered_mse,
             "action_dim": action_dim,
             "action_horizon": action_horizon,
             "steps": steps,
+            "use_low_pass_filter": use_low_pass_filter,
+            "low_pass_alpha": low_pass_alpha,
         }
         plot_trajectory(info, save_plot_path)
 
@@ -130,11 +145,15 @@ def plot_trajectory(
     state_joints_across_time = info["state_joints_across_time"]
     gt_action_across_time = info["gt_action_across_time"]
     pred_action_across_time = info["pred_action_across_time"]
+    filtered_pred_action_across_time = info["filtered_pred_action_across_time"]
     modality_keys = info["modality_keys"]
     traj_id = info["traj_id"]
     mse = info["mse"]
+    filtered_mse = info["filtered_mse"]
     action_horizon = info["action_horizon"]
     steps = info["steps"]
+    use_low_pass_filter = info["use_low_pass_filter"]
+    low_pass_alpha = info["low_pass_alpha"]
 
     # Adjust figure size and spacing to accommodate titles
     fig, axes = plt.subplots(nrows=action_dim, ncols=1, figsize=(10, 4 * action_dim + 2))
@@ -150,6 +169,8 @@ def plot_trajectory(
     for key in modality_keys:
         modality_string += key + "\n " if len(modality_string) > 40 else key + ", "
     title_text = f"Trajectory Analysis - ID: {traj_id}\nModalities: {modality_string[:-2]}\nUnnormalized MSE: {mse:.6f}"
+    if use_low_pass_filter and filtered_mse is not None:
+        title_text += f"\nLow-pass(alpha={low_pass_alpha}) MSE: {filtered_mse:.6f}"
 
     fig.suptitle(title_text, fontsize=14, fontweight="bold", color="#2E86AB", y=0.95)
 
@@ -161,6 +182,12 @@ def plot_trajectory(
             ax.plot(state_joints_across_time[:, i], label="state joints", alpha=0.7)
         ax.plot(gt_action_across_time[:, i], label="gt action", linewidth=2)
         ax.plot(pred_action_across_time[:, i], label="pred action", linewidth=2)
+        if filtered_pred_action_across_time is not None:
+            ax.plot(
+                filtered_pred_action_across_time[:, i],
+                label="pred action (low-pass)",
+                linewidth=2,
+            )
 
         # put a dot every ACTION_HORIZON
         for j in range(0, steps, action_horizon):
@@ -182,3 +209,15 @@ def plot_trajectory(
         plt.savefig(save_plot_path, dpi=300, bbox_inches="tight")
     else:
         plt.show()
+
+
+def low_pass_filter_actions(actions: np.ndarray, alpha: float) -> np.ndarray:
+    """Apply a first-order low-pass (EMA) filter along time for each action dim."""
+    if not (0.0 < alpha <= 1.0):
+        raise ValueError(f"low_pass_alpha must be in (0, 1], got {alpha}")
+
+    filtered = np.empty_like(actions)
+    filtered[0] = actions[0]
+    for t in range(1, actions.shape[0]):
+        filtered[t] = alpha * actions[t] + (1.0 - alpha) * filtered[t - 1]
+    return filtered

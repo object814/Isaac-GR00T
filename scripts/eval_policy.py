@@ -89,6 +89,12 @@ class ArgsConfig:
     denoising_steps: int = 4
     """Number of denoising steps to use."""
 
+    use_low_pass_filter: bool = False
+    """Whether to apply a first-order low-pass filter to predicted actions."""
+
+    low_pass_alpha: float = 0.2
+    """Low-pass filter alpha in (0, 1]; smaller means stronger smoothing."""
+
     save_plot_path: str = None
     """Path to save the plot."""
 
@@ -167,6 +173,8 @@ def main(args: ArgsConfig):
             plot=args.plot,
             plot_state=args.plot_state,
             save_plot_path=args.save_plot_path,
+            use_low_pass_filter=args.use_low_pass_filter,
+            low_pass_alpha=args.low_pass_alpha,
         )
         print("MSE:", mse)
         all_mse.append(mse)

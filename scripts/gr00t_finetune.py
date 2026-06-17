@@ -13,6 +13,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import av.logging
+av.logging.set_level(av.logging.ERROR)   # or av.logging.QUIET
+
 import os
 import subprocess
 import sys
@@ -371,7 +374,7 @@ def main(config: ArgsConfig):
         save_strategy="steps",
         save_steps=config.save_steps,
         # evaluation_strategy="no",
-        save_total_limit=5,
+        save_total_limit=30,
         report_to=config.report_to,
         seed=42,
         do_eval=False,
