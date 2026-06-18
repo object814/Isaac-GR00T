@@ -41,25 +41,42 @@ the venv activated.
 
 ## 2. Get the datasets from Hugging Face
 
+There are two dataset repos. They contain the **same robot trajectories and
+videos** — the only difference is the **language instruction** attached to each
+episode:
+
+| HF repo | Prompt per episode | Use it for |
+|---------|--------------------|------------|
+| [`haoyuzhou814/frank-stacking`](https://huggingface.co/datasets/haoyuzhou814/frank-stacking) | One **generic** prompt for every episode: *"Stack the blue block onto the black block, then stack the orange block on top of the blue block."* | The original data / baseline. |
+| [`haoyuzhou814/frank-stacking-relabeled`](https://huggingface.co/datasets/haoyuzhou814/frank-stacking-relabeled) | **Arm-specific** prompt naming which arm grasps (e.g. *"Using the **left** arm to stack…"*, or for bimanual episodes *"Using the left arm to stack the blue block…, then using the **right** arm to stack the orange block…"*). | **Finetuning** (this is what we train on). |
+
+Why this matters: the robot is bimanual, and per episode one arm is the **active**
+grasper while the other only repositions its wrist camera. With one generic
+prompt the policy can't tell which arm it's being asked to use; the relabeled
+prompts expose that, so the policy can be commanded left/right at eval time. See
+[section 3](#3-dataset--relabeling) for how the arm is recovered and the full
+prompt list.
+
+Download both (keep them as siblings — `data/` and `data_relabeled/`):
+
 ```bash
 # pip install -U "huggingface_hub[cli]"   # if not already present
-huggingface-cli download <HF_USER>/frank-cubes           --repo-type dataset --local-dir data
-huggingface-cli download <HF_USER>/frank-cubes-relabeled --repo-type dataset --local-dir data_relabeled
+hf download haoyuzhou814/frank-stacking           --repo-type dataset --local-dir data
+hf download haoyuzhou814/frank-stacking-relabeled --repo-type dataset --local-dir data_relabeled
 
-# data_relabeled ships WITHOUT videos (they are identical to data/videos).
-# Recreate the relative symlink so the loader finds them:
+# data_relabeled ships WITHOUT videos (they are byte-identical to data/videos).
+# Recreate the relative symlink so the loader finds the videos:
 ln -sfn ../data/videos data_relabeled/videos
 ```
 
-> Replace `<HF_USER>/...` with the actual dataset repo names.
+> `data_relabeled/videos` is a **relative** symlink into `data/videos` to avoid
+> duplicating ~2.3 GB of video, so the two folders must stay side by side.
 
-`data_relabeled/videos` is a **relative** symlink to `data/videos` to avoid
-duplicating ~2.3 GB of video, so keep `data/` and `data_relabeled/` as siblings.
-
-**Simplest alternative:** download only `data/`, then regenerate the relabeled
-set locally — this recreates the symlink for you:
+**Simplest alternative** — download only the original and regenerate the
+relabeled set locally (this recreates the symlink for you):
 
 ```bash
+hf download haoyuzhou814/frank-stacking --repo-type dataset --local-dir data
 python scripts/relabel_arm_prompts.py --src data --dst data_relabeled
 ```
 
